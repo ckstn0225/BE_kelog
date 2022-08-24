@@ -6,19 +6,19 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.IOUtils;
 import com.kelog.kelog.domain.Member;
+import com.kelog.kelog.exception.CustomException;
+import com.kelog.kelog.exception.ErrorCode;
 import com.kelog.kelog.repository.MemberRepository;
 import com.kelog.kelog.request.LoginDto;
 import com.kelog.kelog.request.SignUpRequestDto;
-import com.kelog.kelog.response.ResponseDto;
+import com.kelog.kelog.response.MemberResponseDto;
 import com.kelog.kelog.security.jwt.TokenProvider;
 import com.kelog.kelog.shared.CommonUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,55 +36,46 @@ public class MemberService {
     private final AmazonS3Client amazonS3Client;
 
     private final MemberRepository memberRepository;
-
     private final PasswordEncoder passwordEncoder;
 
     private final TokenProvider tokenProvider;
 
+
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
-
-    @ExceptionHandler
-    public String handle(IOException ex) {
-        return "오류발생";
-    }
-
 
     public String Signup(MultipartFile multipartFile, SignUpRequestDto requestDto) throws IOException {
 //        ----------------------------------------------------------------------------------------------------
 //        유효성검사 부분
 //        아이디 패턴
-        String pattern = "[a-zA-Z\\d!@#$%^&*]*$";
-        if (!Pattern.matches(pattern, requestDto.getAccount())|| requestDto.getAccount().length()<8 || requestDto.getAccount().length() > 30) {
-            return "아이디 양식이 틀립니다.";
-        }
-//        비밀번호 패턴
-        if (!Pattern.matches(pattern, requestDto.getPassword())|| requestDto.getPassword().length()<8 || requestDto.getPasswordConfirm().length() > 30) {
-            return "비밀번호 양식이 틀립니다.";
-        }
 //        아이디 확인
         if (requestDto.getAccount() == null) {
-            return "아이디를 적어주세요";
+            //return "아이디를 적어주세요";
+            throw new CustomException(ErrorCode.SIGNUP_ACCOUNT_NOT_FOUND_ERROR);
         }
 //        닉네임 확인
         if (requestDto.getUsername() == null) {
-            return "아이디를 적어주세요";
+            //return "아이디를 적어주세요";
+            throw new CustomException(ErrorCode.SIGNUP_USERNAME_NOT_FOUND_ERROR);
         }
 //        동일 account 확인
         if (memberRepository.existsByAccount(requestDto.getAccount())) {
-            return "이미 존재하는 아이디입니다.";
+            //return "이미 존재하는 아이디입니다.";
+            throw new CustomException(ErrorCode.SIGNUP_ACCOUNT_DUPLICATE_ERROR);
         }
 //        비밀번호 confirm 확인
         if (!Objects.equals(requestDto.getPassword(), requestDto.getPasswordConfirm())) {
-            return "비밀번호가 일치하지 않습니다.";
+            //return "비밀번호가 일치하지 않습니다.";
+            throw new CustomException(ErrorCode.SIGNUP_PASSWORD_CHECK_ERROR);
         }
 //        한줄평 확인
         if (requestDto.getUsercomment() == null) {
-            return "한줄평을 적어주세요!";
+           //return "한줄평을 적어주세요!";
+            throw new CustomException(ErrorCode.SIGNUP_USERCOMMENT_NOT_FOUND_ERROR);
         }
 //        이미지 유무 확인
         if (multipartFile.isEmpty()){
-            return "이미지가 없습니다!";
+            throw new CustomException(ErrorCode.SIGNUP_USERIMAGE_NOT_FOUND_ERROR);
         }
 //        ---------------------------------------------------------------------------------------------------
 
@@ -116,13 +107,18 @@ public class MemberService {
 
     public String login(LoginDto loginDto, HttpServletResponse response) {
         Member member = existMember(loginDto.getAccount());
-
+        System.out.println("--------------------------------------------------------");
+        System.out.println(member.getAccount());
+        System.out.println(loginDto.getAccount());
+        System.out.println("--------------------------------------------------------");
 
         if (null == member) {
-            return "존재하지 않는 사용자입니다.";
+            //return "존재하지 않는 사용자입니다.";
+            throw new CustomException(ErrorCode.LOGIN_ACCOUNT_NOT_FOUND_FAIL);
         }
         if (!passwordEncoder.matches(loginDto.getPassword(),member.getPassword())) {
-            return "비밀번호가 맞지않습니다.";
+           // return "비밀번호가 맞지않습니다.";
+            throw new CustomException(ErrorCode.LOGIN_PASSWORD_NOT_FOUND_FAIL);
         }
         String Token = tokenProvider.createToken(member);
         response.addHeader("Authorization",Token);
@@ -138,4 +134,9 @@ public class MemberService {
     public String test(HttpServletRequest request) {
         return tokenProvider.getUserAccount(request);
     }
+// 아이디 체크
+    public boolean accountCheck(String account) {
+        return memberRepository.existsAllByAccount(account);
+    }
+
 }

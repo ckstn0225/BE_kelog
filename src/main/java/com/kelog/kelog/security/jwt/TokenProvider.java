@@ -3,16 +3,11 @@ package com.kelog.kelog.security.jwt;
 import com.kelog.kelog.domain.Member;
 
 import com.kelog.kelog.security.UserDetailsServiceImpl;
-import com.kelog.kelog.shared.Authority;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,8 +28,7 @@ public class TokenProvider {
 
     // 토큰 유효시간 5분 설정 (1000L = 1초, 1000L * 60 = 1분)
     //    엑세스 토큰만 있어 10분으로 설정
-    private static final long TOKEN_VALID_TIME = 1000L * 60 * 10;
-    private static final String Auto_KEY = "Auth";
+    private static final long TOKEN_VALID_TIME = 1000L * 60 * 60;
     private final UserDetailsServiceImpl userDetailsService;
     public static String BEARER_PREFIX = "Bearer ";
     private final Key key;
@@ -87,7 +81,7 @@ public class TokenProvider {
         return false;
     }
     //---------------------------------------------------------------------------------------------------
-    // JWT 토큰에서 인증 정보 조회
+    // JWT 토큰에서 인증 정보 조회 (Account 조회)
     public Authentication getAuthentication(String token) {
         UserDetails userDetails = userDetailsService.loadUserByUsername(this.getUserPk(token));
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
@@ -104,6 +98,7 @@ public class TokenProvider {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(jwtToken).getBody().getSubject();
     }
     //---------------------------------------------------------------------------------------------------
+
     // 리퀘스트 헤더에서 토큰값가져오기
     public String takeToken(HttpServletRequest request) {
         return request.getHeader("Authorization").substring(7);

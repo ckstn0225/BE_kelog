@@ -9,14 +9,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,9 +21,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.Key;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 // OncePerRequestFilter = 사용자의 요청 한번에 한번만 실행되는 필터를 생성한다 = "필터결과를 재활용 한다"
@@ -64,8 +55,8 @@ public class JwtFilter extends OncePerRequestFilter {
         String jwt = subToken(request);
 
 //      hasText = 문자가 유효한지 체크하는 메소드 (공백을 제외하고 길이가 1이상인경우 true 값을 내보냄)
-//
-        if (StringUtils.hasText(jwt) && tokenProvider.CheckToken(request)){
+        if (!(subToken(request) == null)){
+            if (StringUtils.hasText(jwt) && tokenProvider.CheckToken(request)){
             //매니저님 주석 -- Payload 부분에는 토큰에 담을 정보가 들어있습니다. 여기에 담는 정보의 한 ‘조각’ 을 클레임(claim) 이라고 부름
             //매니저님 주석 -- name / value 의 한 쌍으로 이뤄져있음
             Claims claims;
@@ -89,7 +80,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
             Authentication authentication = tokenProvider.getAuthentication(jwt);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-        }
+        }}
+
 
         filterChain.doFilter(request, response);
 
