@@ -66,6 +66,7 @@ public class CommentService {
         commentRepository.save(comment);
         CommentResponseDto responseDto = CommentResponseDto.builder()
                 .commentId(comment.getId())
+                .account(comment.getMember().getAccount())
                 .username(comment.getMember().getUsername())
                 .comment(comment.getComment())
                 .profileimage(comment.getMember().getProfileimage())
@@ -96,6 +97,7 @@ public class CommentService {
             commentResponseDtoList.add(
                     CommentResponseDto.builder()
                             .commentId(comment.getId())
+                            .account(comment.getMember().getAccount())
                             .username(comment.getMember().getUsername())
                             .comment(comment.getComment())
                             .memberId(post.getMember().getId())
@@ -140,6 +142,7 @@ public class CommentService {
         return ResponseDto.success(
                 CommentResponseDto.builder()
                         .commentId(comment.getId())
+                        .account(comment.getMember().getAccount())
                         .username(comment.getMember().getUsername())
                         .comment(comment.getComment())
                         .profileimage(comment.getMember().getProfileimage())
